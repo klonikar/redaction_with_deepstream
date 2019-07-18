@@ -127,7 +127,7 @@ class Redaction_Main(object):
             print("Unable to get sink pad of osd")
         else:
             print("Adding probe for sink pad of osd")
-            #self.osd_probe_id = self.osd_sink_pad.add_probe(Gst.PadProbeType.BUFFER, self.osd_sink_pad_buffer_probe, self)
+            self.osd_probe_id = self.osd_sink_pad.add_probe(Gst.PadProbeType.BUFFER, self.osd_sink_pad_buffer_probe, None)
 
         # Set the pipeline to "playing" state
         print("Now playing: ", args.input_mp4)
@@ -145,6 +145,10 @@ class Redaction_Main(object):
         self.pipeline.unref()
         # GObject.Source.remove(self.bus_watch_id)
         self.loop.unref()
+
+    def osd_sink_pad_buffer_probe(self, pad, info, u_data):
+        print("sink pad probe invoked", pad, info, u_data, self)
+        return Gst.PadProbeReturn.OK
 
     def bus_call(self, bus, message, loop):
         t = message.type
