@@ -8,16 +8,20 @@ import traceback
 import pdb
 import json
 import base64
+from _gst_nvds_bindings import ffi, lib
 import gi
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GObject, Gtk
+
+NVDS_META_STRING = b"nvdsmeta"
 
 class Redaction_Main(object):
     """Class to initialize the deepstream redaction example pipeline"""
     def __init__(self, args):
         super(Redaction_Main, self).__init__()
         self.args = args
-
+        self.statePtr = ffi.new("void **");
+        self._nvdsmeta_quark = lib.g_quark_from_static_string(NVDS_META_STRING)
         # Create gstreamer loop
         self.loop = GObject.MainLoop()
         # Create gstreamer pipeline
@@ -147,7 +151,15 @@ class Redaction_Main(object):
         self.loop.unref()
 
     def osd_sink_pad_buffer_probe(self, pad, info, u_data):
-        print("sink pad probe invoked", pad, info, u_data, self)
+        print("sink pad probe invoked", "pad", pad, "info", info, "info.data", info.get_buffer(), "u_data", u_data, "self", self)
+        buf = ffi.cast("void *", info.data)
+        gst_meta = lib.gst_buffer_iterate_meta(buf, self.statePtr)
+        while gst_meta != ffi.NULL:
+            gst_meta = ffi.cast("void *", gst_meta)
+            print("****got metadata....", gst_meta)
+            if lib.gst_meta_has_tag(gst_meta, self._nvdsmeta_quark):
+                print("*********got deepstream metadata....")
+            gst_meta = lib.gst_buffer_iterate_meta(buf, self.statePtr)
         return Gst.PadProbeReturn.OK
 
     def bus_call(self, bus, message, loop):
@@ -198,3 +210,4 @@ if __name__ == '__main__':
     GObject.threads_init()
     Gst.init(None) # sys.argv       
     Redaction_Main(args)
+
