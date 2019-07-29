@@ -241,12 +241,22 @@ class Redaction_Main(object):
     def cb_newpad(self, decodebin, pad, data):
         # only link once
         # videopad = self.video_full_processing_bin.get_static_pad("sink")
+        print("New pad event captured for sinkpad...")
         if self.video_full_processing_bin_sink_pad.is_linked():
+            print("sinkpad already linked...")
             # videopad.unref()
             return;
-        # TODO: check media type
+        # check media type
+        caps = pad.query_caps(None)
+        capsStr = caps.get_structure(0)
+        print("pad caps", capsStr.get_name())
+        if capsStr.get_name().find("video") < 0:
+            print("caps", capsStr.get_name(), " does not have video")
+            # caps.unref()
+            return;
 
-        # link and play
+        # caps.unref()
+        # link'n'play
         # pad.link(videopad)
         pad.link(self.video_full_processing_bin_sink_pad)
         # videopad.unref()
@@ -264,7 +274,7 @@ if __name__ == '__main__':
     if args.input_mp4 is None or args.pgie_config is None:
         parser.print_help()
         exit(1)
-    
+
     GObject.threads_init()
-    Gst.init(None) # sys.argv       
+    Gst.init(None) # sys.argv
     Redaction_Main(args)
