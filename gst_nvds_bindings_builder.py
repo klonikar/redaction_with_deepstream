@@ -9,6 +9,7 @@ ffibuilder.set_source("_gst_nvds_bindings",
 #include <glib.h>
 #include <stdio.h>
 #include "gstnvdsmeta.h"
+#include "gstnvstreammeta.h"
 #define MAX_DISPLAY_LEN 64
 
 int gst_meta_has_tag(void *p, int tag) {
@@ -28,11 +29,14 @@ ffibuilder.cdef("""
 typedef int gint;
 typedef short gshort;
 typedef int gboolean;
+typedef unsigned long gulong;
+typedef unsigned long guint64;
 typedef double gdouble;
 typedef float gfloat;
 typedef unsigned int guint;
 typedef char gchar;
 typedef void* gpointer;
+typedef guint64 GstClockTime;
 
 /**
  * GstMetaFlags:
@@ -542,6 +546,52 @@ typedef struct _NvDsLineMeta {
   /* NvDsMetaFreeFunc freefunc; */
   ...;
 } NvDsMeta;
+
+/**
+ * Holds information related to the original buffers contained in a batched
+ * buffer.
+ */
+typedef struct
+{
+  /** Parent GstMeta structure. */
+  GstMeta meta;
+  /** Number of actual filled frames in a batch. This number may be less than
+   * the batch size of the buffer. */
+  guint num_filled;
+
+  /** Array of indexes of stream to which the frames in the batch belong to. */
+  guint *stream_id;
+  /** Array of frame numbers of the frames in the batch. The frame numbers are
+   * the numbers of the frame in the input stream. */
+  gulong *stream_frame_num;
+  /** Array of original input widths of the frames in the batch. This might be
+   * different than the width of the batched frame since the Stream Muxer might
+   * scale the frame during batching. */
+  guint *original_width;
+  /** Array of original input heights of the frames in the batch. This might be
+   * different than the width of the batched frame since the Stream Muxer might
+   * scale the frame during batching. */
+  guint *original_height;
+  /** Array of original presentation timestamps of the frames in the batch.
+   * Stream Muxer will attach its own timestamp to the batched GstBuffer. */
+  GstClockTime *buf_pts;
+
+  /** Array of Camera IDs indicating the camera_id which maps to CSV file */
+  guint *camera_id;
+  /** Total number of dewarped surfaces per source frame */
+  guint num_surfaces_per_frame;
+  /** Total batch-size */
+  guint batch_size;
+  /** Array of Surface Types Spot / Aisle / None */
+  NvDsSurfaceType *surface_type;
+  /** Array of surface_index indicating the surface index which maps to CSV file */
+  guint *surface_index;
+
+  /** Used internally by components. */
+  gchar **input_pkt_pts;
+  /** Used internally by components. */
+  gboolean *is_valid;
+} GstNvStreamMeta;
 
             int g_quark_from_static_string (const char *);
             void *gst_buffer_iterate_meta(void *buf, void **state);
