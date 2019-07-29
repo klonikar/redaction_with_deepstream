@@ -20,6 +20,8 @@ class Redaction_Main(object):
     def __init__(self, args):
         super(Redaction_Main, self).__init__()
         self.args = args
+        self.pgie_classes_str = ["face", "license_plate", "make", "model"]
+        self.frame_number = 0
         self.statePtr = ffi.new("void **");
         self._nvdsmeta_quark = lib.g_quark_from_static_string(NVDS_META_STRING)
         # Create gstreamer loop
@@ -154,12 +156,66 @@ class Redaction_Main(object):
         print("sink pad probe invoked", "pad", pad, "info", info, "info.data", info.get_buffer(), "u_data", u_data, "self", self)
         buf = ffi.cast("void *", info.data)
         gst_meta = lib.gst_buffer_iterate_meta(buf, self.statePtr)
+        bbox_params_dump_file = None
         while gst_meta != ffi.NULL:
-            gst_meta = ffi.cast("void *", gst_meta)
             print("****got metadata....", gst_meta)
             if lib.gst_meta_has_tag(gst_meta, self._nvdsmeta_quark):
-                print("*********got deepstream metadata....")
+                nvdsmeta = ffi.cast("NvDsMeta *", gst_meta)
+                print("*********got deepstream metadata....", nvdsmeta, nvdsmeta.meta_type)
+                # We are interested only in intercepting Meta of type
+                # "NVDS_META_FRAME_INFO" as they are from our infer elements.
+                if nvdsmeta.meta_type == lib.NVDS_META_FRAME_INFO:
+                    frame_meta = ffi.cast("NvDsFrameMeta *", nvdsmeta.meta_data)
+                    if frame_meta == ffi.NULL:
+                        print("NvDS Meta contained NULL meta")
+                        self.frame_number += 1
+                        return Gst.PadProbeReturn.OK
+                    if self.args.output_kitti is not None:
+                        bbox_file = "%s/%06d.txt" % (self.args.output_kitti, self.frame_number)
+                        bbox_params_dump_file = open(bbox_file, "w")
+
+                    num_rects = frame_meta.num_rects
+                    print("num rects", num_rects)
+                    # This means we have num_rects in frame_meta->obj_params,
+                    # now lets iterate through them
+                    for rect_index in range(0, num_rects):
+                        # Now using above information we need to form a color patch that should
+                        # be displayed on the original video to cover object of interests for redaction purpose
+                        obj_meta = frame_meta.obj_params[rect_index]
+                        rect_params = obj_meta.rect_params
+                        txt_params = obj_meta.text_params
+                        if txt_params.display_text != ffi.NULL:
+                            lib.g_free(txt_params.display_text)
+
+                        # Draw black patch to cover license plates (class_id = 1)
+                        if obj_meta.class_id == 1:
+                            rect_params.border_width = 0
+                            rect_params.has_bg_color = 1
+                            rect_params.bg_color.red = 0.0
+                            rect_params.bg_color.green = 0.0
+                            rect_params.bg_color.blue = 0.0
+                            rect_params.bg_color.alpha = 1.0
+                        # Draw skin-color patch to cover faces (class_id = 0)
+                        if obj_meta.class_id == 0:
+                            rect_params.border_width = 0
+                            rect_params.has_bg_color = 1
+                            rect_params.bg_color.red = 0.92
+                            rect_params.bg_color.green = 0.75
+                            rect_params.bg_color.blue = 0.56
+                            rect_params.bg_color.alpha = 1.0
+                        if bbox_params_dump_file is not None:
+                            left = rect_params.left
+                            top = rect_params.top
+                            right = left + rect_params.width
+                            bottom = top + rect_params.height
+                            class_index = obj_meta.class_id
+                            text = self.pgie_classes_str[obj_meta.class_id]
+                            bbox_params_dump_file.write("%s 0.0 0 0.0 %d.00 %d.00 %d.00 %d.00 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n" % (text, left, top, right, bottom))
+                    if bbox_params_dump_file is not None:
+                        bbox_params_dump_file.close()
+                        bbox_params_dump_file = None
             gst_meta = lib.gst_buffer_iterate_meta(buf, self.statePtr)
+        self.frame_number += 1
         return Gst.PadProbeReturn.OK
 
     def bus_call(self, bus, message, loop):
@@ -186,9 +242,9 @@ class Redaction_Main(object):
         if self.video_full_processing_bin_sink_pad.is_linked():
             # videopad.unref()
             return;
-        # check media type
+        # TODO: check media type
 
-        # link’n’play
+        # link and play
         # pad.link(videopad)
         pad.link(self.video_full_processing_bin_sink_pad)
         # videopad.unref()
@@ -210,4 +266,3 @@ if __name__ == '__main__':
     GObject.threads_init()
     Gst.init(None) # sys.argv       
     Redaction_Main(args)
-
