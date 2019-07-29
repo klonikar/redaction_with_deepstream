@@ -14,6 +14,8 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GObject, Gtk
 
 NVDS_META_STRING = b"nvdsmeta"
+GST_META_TAG_NVSTREAM = b"nvstream"
+GST_CAPS_FEATURE_META_GST_NVSTREAM_META = b"meta:GstNvStreamMeta"
 
 class Redaction_Main(object):
     """Class to initialize the deepstream redaction example pipeline"""
