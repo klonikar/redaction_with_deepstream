@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <stdio.h>
 #include "gstnvdsmeta.h"
+#include <sys/times.h>
 #define MAX_DISPLAY_LEN 64
 
 /* Define global variables:
@@ -37,6 +38,7 @@ gchar *pgie_config = NULL;
 gchar *input_mp4 = NULL;
 gchar *output_mp4 = NULL;
 gchar *output_kitti = NULL;
+clock_t p_start, p_end;
 
 /* initialize our gstreamer components for the app */
 
@@ -343,10 +345,48 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
   }
 
   /* Check all components */
-  if (!pipeline || !source || !decoder || !video_full_processing_bin
-      || !queue_pgie || !pgie || !queue_osd || !nvvidconv_osd || !filter_osd
-      || !osd || !sink) {
-    g_printerr ("One element could not be created. Exiting.\n");
+  if(! pipeline) {
+    g_printerr ("pipeline could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! source) {
+    g_printerr ("source could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! decoder) {
+    g_printerr ("decoder could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! video_full_processing_bin) {
+    g_printerr ("video_full_processing_bin could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! queue_pgie) {
+    g_printerr ("queue_pgie could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! pgie) {
+    g_printerr ("pgie could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! queue_osd) {
+    g_printerr ("queue_osd could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! nvvidconv_osd) {
+    g_printerr ("nvvidconv_osd could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! filter_osd) {
+    g_printerr ("filter_osd could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! osd) {
+    g_printerr ("osd could not be created. Exiting.\n");
+    return -1;
+  }
+  if(! sink) {
+    g_printerr ("sink could not be created. Exiting.\n");
     return -1;
   }
 
@@ -401,13 +441,15 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
 
   /* Set the pipeline to "playing" state */
   g_print ("Now playing: %s\n", input_mp4);
+  p_start = times(NULL);
   gst_element_set_state (pipeline, GST_STATE_PLAYING);
 
   /* Wait till pipeline encounters an error or EOS */
   g_main_loop_run (loop);
 
   /* Out of the main loop, clean up nicely */
-  g_print ("Returned, stopping playback\n");
+  p_end = times(NULL);
+  g_print ("Returned, stopping playback, time %lu ms\n", 10*(p_end-p_start));
   gst_element_set_state (pipeline, GST_STATE_NULL);
   g_print ("Deleting pipeline\n");
   gst_object_unref (GST_OBJECT (pipeline));
