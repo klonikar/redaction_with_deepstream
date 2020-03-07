@@ -390,7 +390,7 @@ contact: Shuo Wang (shuow@nvidia.com)");
     g_printerr ("source could not be created. Exiting.\n");
     return -1;
   }
-  if(! decoder) {
+  if(input_mp4 && ! decoder) {
     g_printerr ("decoder could not be created. Exiting.\n");
     return -1;
   }
@@ -406,16 +406,16 @@ contact: Shuo Wang (shuow@nvidia.com)");
     g_printerr ("pgie could not be created. Exiting.\n");
     return -1;
   }
-  if(! queue_osd) {
-    g_printerr ("queue_osd could not be created. Exiting.\n");
+  if(output_mp4 && ! queue_sink) {
+    g_printerr ("queue_sink could not be created. Exiting.\n");
     return -1;
   }
   if(! nvvidconv_osd) {
     g_printerr ("nvvidconv_osd could not be created. Exiting.\n");
     return -1;
   }
-  if(! filter_osd) {
-    g_printerr ("filter_osd could not be created. Exiting.\n");
+  if(!input_mp4 && !filter_src) {
+    g_printerr ("filter_src could not be created. Exiting.\n");
     return -1;
   }
   if(! osd) {
