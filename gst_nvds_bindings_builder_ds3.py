@@ -21,7 +21,7 @@ int gst_meta_has_tag(void *p, int tag) {
 
    """,
   libraries=["gstreamer-1.0", "gobject-2.0", "glib-2.0", "gmodule-2.0" ],
-  include_dirs=[".", "/usr/include/gstreamer-1.0", "/usr/lib/x86_64-linux-gnu/gstreamer-1.0/include", "/usr/include/glib-2.0", "/usr/lib/aarch64-linux-gnu/glib-2.0/include", "/usr/lib/x86_64-linux-gnu/glib-2.0/include", "/usr/include/python3.6"]
+  include_dirs=[".", "/usr/include/gstreamer-1.0", "/usr/local/include/gstreamer-1.0", "/usr/lib/x86_64-linux-gnu/gstreamer-1.0/include", "/usr/include/glib-2.0", "/usr/local/include/glib-2.0", "/usr/lib/aarch64-linux-gnu/glib-2.0/include", "/usr/lib/x86_64-linux-gnu/glib-2.0/include", "/usr/local/lib/glib-2.0/include", "/usr/include/python3.6"]
   )
 
 nvdsStructsDefFile = open("nvdsmetastructs_ds3.h", "r")
