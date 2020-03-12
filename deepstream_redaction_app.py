@@ -156,7 +156,7 @@ class Redaction_Main(object):
         if self.pgie is None:
             print("pgie could not be created. Exiting.")
             return
-        if args.output_mp4 is not None and self.self.queue_sink is None:
+        if args.output_mp4 is not None and self.queue_sink is None:
             print("queue_sink could not be created. Exiting.")
             return
         if self.nvvidconv_osd is None:
@@ -298,7 +298,8 @@ class Redaction_Main(object):
         self.loop.unref()
 
     def osd_sink_pad_buffer_probe(self, pad, info, u_data):
-        print("sink pad probe invoked", "pad", pad, "info", info, "info.data", info.get_buffer(), "u_data", u_data, "self", self)
+        print("sink pad probe invoked", "pad", pad, "info", info, "info.data", hex(info.data), "hash of get_buffer", hex(hash(info.get_buffer())), "info.get_buffer", info.get_buffer(), "u_data", u_data, "self", self)
+        #pdb.set_trace()
         #Intiallizing object counter with 0.
         obj_counter = {
             PGIE_CLASS_ID_VEHICLE:0,
@@ -317,7 +318,8 @@ class Redaction_Main(object):
         # Note that pyds.gst_buffer_get_nvds_batch_meta() expects the
         # C address of gst_buffer as input, which is obtained with hash(gst_buffer)
         bbox_params_dump_file = None
-        batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
+        #batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
+        batch_meta = pyds.gst_buffer_get_nvds_batch_meta(info.data)
         l_frame = batch_meta.frame_meta_list
         while l_frame is not None:
             try:
@@ -354,18 +356,20 @@ class Redaction_Main(object):
                 if obj_meta.class_id == 1:
                     rect_params.border_width = 0
                     rect_params.has_bg_color = 1
-                    rect_params.bg_color.red = 0.0
-                    rect_params.bg_color.green = 0.0
-                    rect_params.bg_color.blue = 0.0
-                    rect_params.bg_color.alpha = 1.0
+                    rect_params.bg_color.set(0.5, 0.0, 0.5, 1.0)
+                    #rect_params.bg_color.red = 0.0
+                    #rect_params.bg_color.green = 0.0
+                    #rect_params.bg_color.blue = 0.0
+                    #rect_params.bg_color.alpha = 1.0
                 # Draw skin-color patch to cover faces (class_id = 0)
                 if obj_meta.class_id == 0:
                     rect_params.border_width = 0
                     rect_params.has_bg_color = 1
-                    rect_params.bg_color.red = 0.92
-                    rect_params.bg_color.green = 0.75
-                    rect_params.bg_color.blue = 0.56
-                    rect_params.bg_color.alpha = 1.0
+                    rect_params.bg_color.set(0.92, 0.75, 0.56, 1.0)
+                    #rect_params.bg_color.red = 0.92
+                    #rect_params.bg_color.green = 0.75
+                    #rect_params.bg_color.blue = 0.56
+                    #rect_params.bg_color.alpha = 1.0
                 if bbox_params_dump_file is not None:
                     left = rect_params.left
                     top = rect_params.top
